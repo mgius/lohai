@@ -1,8 +1,10 @@
+from functools import total_ordering
 from itertools import product, starmap
 import random
 
 
 class Suit(object):
+    none = -1
     spade = 0
     heart = 1
     club = 2
@@ -26,6 +28,7 @@ class CardValue(object):
     special_values = [14, 15]
 
 
+@total_ordering
 class Card(object):
     __slots__ = ['_value', '_suit']
 
@@ -37,6 +40,26 @@ class Card(object):
 
         self._value = value
         self._suit = suit
+
+    def __eq__(self, other):
+        return self.value == other.value and self.suit == other.suit
+
+    def __lt__(self, other):
+        # order special cards highest, then order by suit and value
+        self_special = self.is_special()
+        other_special = self.is_special()
+
+        if self_special and not other_special:
+            return False
+
+        if other_special and not other_special:
+            return True
+
+        if self.suit == other.suit:
+            return self.value < other.value
+        else:
+            return self.suit < other.suit
+
 
     def __getstate__(self):
         return {'_value': self._value,
@@ -111,7 +134,7 @@ class Card(object):
             return self._normal_to_str()
 
     def __repr__(self):
-        return 'Card: %s %d' % (str(self), self.pointvalue)
+        return 'Card: %s' % str(self)
 
 
 class Deck(object):
