@@ -60,7 +60,6 @@ class Card(object):
         else:
             return self.suit < other.suit
 
-
     def __getstate__(self):
         return {'_value': self._value,
                 '_suit': self._suit}
