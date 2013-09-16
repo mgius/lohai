@@ -58,16 +58,27 @@ class Round(object):
         self.hands[player].append(card)
         self._play_card(player, card)
 
-    def play_card(self, player, card):
-        if self.cur_player != player:
-            raise lohai.exception.NotYourTurn("Not player number %s turn"
-                                              % player)
+    def _is_valid_play(self, player, card):
+        player_hand = self.get_hand_for_player(player)
+        if card not in player_hand:
+            raise lohai.exception.InvalidCard(
+                "Card %s is not in player %s's hand" % (card, player))
+
+        if card.is_special():
+            return
 
         if self.lead_suit is not None and card.suit != self.lead_suit:
             player_hand = self.get_hand_for_player(player)
             player_suits = set([card.suit for card in player_hand])
             if self.lead_suit in player_suits:
                 raise lohai.exception.InvalidCard("Must play a lead suit card")
+
+    def play_card(self, player, card):
+        if self.cur_player != player:
+            raise lohai.exception.NotYourTurn("Not player number %s turn"
+                                              % player)
+
+        self._is_valid_play(player, card)
 
         self._play_card(player, card)
 

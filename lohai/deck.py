@@ -20,8 +20,8 @@ class CardValue(object):
     queen = 12
     king = 13
     taker = 14   # black
-    mover = 14   # red
     giver = 15   # black
+    mover = 14   # red
     shaker = 15  # red
 
     all_values = range(2, 16)

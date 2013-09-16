@@ -4,6 +4,7 @@ from lohai import exception
 from lohai.deck import Card, CardValue, Deck, Suit
 from lohai.round import Round
 
+
 class RoundTests(unittest.TestCase):
     def test_round_start(self):
         """ Ensure round start conditions valid
@@ -18,7 +19,22 @@ class RoundTests(unittest.TestCase):
             self.assertEqual(9, len(r.get_hand_for_player(player)))
 
     def test_cannot_play_cards_not_in_hand(self):
-        self.fail('unimplemented')
+        hands = [[Card(2, Suit.club), Card(2, Suit.diamond)],
+                 [Card(3, Suit.club), Card(2, Suit.heart)],
+                 [Card(4, Suit.diamond), Card(2, Suit.spade)],
+                 [Card(5, Suit.club), Card(6, Suit.diamond)]]
+
+        r = Round(None, hands, None, None)
+
+        # first player tries to play player 2's card
+        with self.assertRaises(exception.InvalidCard):
+            r.play_card(0, hands[1][0])
+
+        # first player pulls a card out of his sleeve
+        with self.assertRaises(exception.InvalidCard):
+            r.play_card(0, Card(CardValue.taker, Suit.club))
+        
+
 
     def test_play_in_order(self):
         """ Players play clockwise one at a time """
@@ -64,6 +80,21 @@ class RoundTests(unittest.TestCase):
         with self.assertRaises(exception.InvalidCard):
             round.play_card(3, hands[3][1])
         round.play_card(3, hands[3][0])
+
+    def test_special_instead_of_suit(self):
+        hands = [[Card(2, Suit.club), Card(2, Suit.diamond)],
+                 [Card(3, Suit.club), Card(CardValue.taker, Suit.spade)],
+                 [Card(4, Suit.diamond), Card(2, Suit.spade)],
+                 [Card(5, Suit.club), Card(6, Suit.diamond)]]
+
+        round = Round(None, hands, None, None)
+
+        # first player plays a club
+        round.play_card(0, hands[0][0])
+
+        # second player plays a taker, even though he has a club
+        round.play_card(1, hands[1][1])
+
 
 
 # players may play a special card even if they can follow suit
