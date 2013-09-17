@@ -157,8 +157,19 @@ class TrickTests(unittest.TestCase):
                       [Card(12, 0), Card(9, 1), Card(3, 2), Card(8, 2),
                        Card(10, 2), Card(11, 2), Card(14, 2), Card(4, 3),
                        Card(9, 3)]]
+        self.deck = [Card(11, 3), Card(8, 1), Card(13, 2), Card(12, 2),
+                     Card(10, 3), Card(10, 1), Card(2, 3), Card(8, 3),
+                     Card(2, 0), Card(15, 3), Card(12, 3), Card(7, 0),
+                     Card(15, 2), Card(4, 1), Card(4, 0), Card(3, 0), 
+                     Card(3, 1), Card(14, 3), Card(14, 0)]
+
+        self.trump_card = Card(12, 1)
+
+        self.round = Round(self.deck, self.hands, self.trump_card.pointvalue,
+                           self.trump_card.trump_suit)
 
     def test_highest_lead_suit_wins(self):
+        # player 1 plays a high club
         pass
 
 
