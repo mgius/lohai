@@ -5,6 +5,24 @@ from lohai.deck import Card, CardValue, Deck, Suit
 from lohai.round import Round
 
 
+class CardTests(unittest.TestCase):
+    def test_card_ordering(self):
+        shaker = Card(CardValue.shaker, Suit.heart)
+        two_club = Card(2, Suit.club)
+        three_club = Card(3, Suit.club)
+        three_diamonds = Card(3, Suit.diamond)
+        four_hearts = Card(4, Suit.heart)
+        five_spade = Card(5, Suit.spade)
+
+        order = [five_spade, four_hearts, two_club, three_club, three_diamonds,
+                 shaker]
+
+        for i in range(0, len(order)):
+            for j in range(i + 1, len(order)):
+                self.assertLess(order[i], order[j])
+                self.assertGreater(order[j], order[i])
+
+
 class RoundTests(unittest.TestCase):
     def test_round_start(self):
         """ Ensure round start conditions valid
@@ -18,6 +36,9 @@ class RoundTests(unittest.TestCase):
         for player in range(r.player_count):
             self.assertEqual(9, len(r.get_hand_for_player(player)))
 
+
+class CanPlayCardsTests(unittest.TestCase):
+    """ Tests around whether or not players are allowed to play a card """
     def test_cannot_play_cards_not_in_hand(self):
         hands = [[Card(2, Suit.club), Card(2, Suit.diamond)],
                  [Card(3, Suit.club), Card(2, Suit.heart)],
@@ -34,8 +55,6 @@ class RoundTests(unittest.TestCase):
         with self.assertRaises(exception.InvalidCard):
             r.play_card(0, Card(CardValue.taker, Suit.club))
         
-
-
     def test_play_in_order(self):
         """ Players play clockwise one at a time """
         hands = [[Card(2, Suit.club), Card(2, Suit.diamond)],
@@ -82,6 +101,7 @@ class RoundTests(unittest.TestCase):
         round.play_card(3, hands[3][0])
 
     def test_special_instead_of_suit(self):
+        """ Ensure players can always play a special card """
         hands = [[Card(2, Suit.club), Card(2, Suit.diamond)],
                  [Card(3, Suit.club), Card(CardValue.taker, Suit.spade)],
                  [Card(4, Suit.diamond), Card(2, Suit.spade)],
@@ -95,12 +115,52 @@ class RoundTests(unittest.TestCase):
         # second player plays a taker, even though he has a club
         round.play_card(1, hands[1][1])
 
+    def test_second_player_determines_suit(self):
+        """ First suited card played determines the suit """
+        hands = [[Card(CardValue.taker, Suit.club), Card(2, Suit.diamond)],
+                 [Card(3, Suit.club), Card(2, Suit.heart)],
+                 [Card(4, Suit.diamond), Card(2, Suit.spade)],
+                 [Card(5, Suit.club), Card(6, Suit.diamond)]]
+
+        round = Round(None, hands, None, None)
+
+        # first player plays a taker
+        round.play_card(0, hands[0][0])
+
+        # second player plays a club, setting the suit
+        round.play_card(1, hands[1][0])
+
+        # third player plays whatever becuase he doesn't have a club
+        round.play_card(2, hands[2][0])
+
+        # fourth player must play his club
+        with self.assertRaises(exception.InvalidCard):
+            round.play_card(3, hands[3][1])
+
+        round.play_card(3, hands[3][0])
 
 
-# players may play a special card even if they can follow suit
+class TrickTests(unittest.TestCase):
+    """ Tests around various trick win conditions """
+    def setUp(self):
+        # this set of hands generated using the Round.start_new_round and then
+        # sorted
+        self.hands = [[Card(6, 0), Card(10, 0), Card(11, 0), Card(13, 0),
+                       Card(7, 1), Card(2, 2), Card(6, 2), Card(9, 2), 
+                       Card(6, 3)],
+                      [Card(15, 0), Card(6, 1), Card(11, 1), Card(14, 1),
+                       Card(15, 1), Card(7, 2), Card(3, 3), Card(7, 3),
+                       Card(13, 3)],
+                      [Card(5, 0), Card(8, 0), Card(9, 0), Card(2, 1), 
+                       Card(5, 1), Card(13, 1), Card(4, 2), Card(5, 2), 
+                       Card(5, 3)],
+                      [Card(12, 0), Card(9, 1), Card(3, 2), Card(8, 2),
+                       Card(10, 2), Card(11, 2), Card(14, 2), Card(4, 3),
+                       Card(9, 3)]]
 
-# the first player to play a suited card determines the suit, subsequent
-# players follow suit as before
+    def test_highest_lead_suit_wins(self):
+        pass
+
 
 # the last player to play a giver or taker (black special) wins
 
