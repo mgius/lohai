@@ -191,6 +191,23 @@ class TrickTests(unittest.TestCase):
         # player 1 should have a point
         self.assertEqual([1, 0, 0, 0], self.round.tricks_won)
 
+    def test_last_taker_wins(self):
+        """ Last taker played wins """
+        # first player plays a taker
+        self.round.play_card(0, Card(13, 0))
+
+        # second player sets the suit as club
+        self.round.play_card(1, Card(4, 0))
+
+        # third player follows with a club
+        self.round.play_card(2, Card(5, 0))
+        
+        # last player plays a taker
+        self.round.play_card(3, Card(13, 2))
+
+        # player 4 should have a point
+        self.assertEqual([0, 0, 0, 1], self.round.tricks_won)
+
 
 # the last player to play a giver or taker (black special) wins
 

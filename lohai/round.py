@@ -78,6 +78,9 @@ class Round(object):
             raise lohai.exception.NotYourTurn("Not player number %s turn"
                                               % player)
 
+        if self.this_rounds_cards[self.cur_player] is not None:
+            raise lohai.exception.NotYourTurn("You have already played a card")
+
         self._is_valid_play(player, card)
 
         self._play_card(player, card)
@@ -105,7 +108,7 @@ class Round(object):
                 raise NeedShakerInput
 
         if card.is_taker() or card.is_giver():
-            self.most_recent_giver_taker = player
+            self.most_recent_giver_taker = card, player
 
         if self.lead_suit is None and not card.is_special():
             self.lead_suit = card.suit
@@ -116,6 +119,18 @@ class Round(object):
             self._process_round_winner()
 
     def _process_round_winner(self):
+        # did any players play a taker or giver
+        if self.most_recent_giver_taker is not None:
+            card, player = self.most_recent_giver_taker
+            if card.is_taker():
+                self.tricks_won[player] += 1
+            elif card.is_giver():
+                raise Exception("Unhandled")
+            else:
+                raise Exception("Card %s is not a giver or taker" % card)
+
+            return
+
         # find the player with the highest lead card
         cur_card = self.this_rounds_cards[self.first_player]
         for card in self.this_rounds_cards:
