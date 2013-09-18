@@ -112,6 +112,19 @@ class Round(object):
 
         self.cur_player = (self.cur_player + 1) % self.player_count
 
+        if None not in self.this_rounds_cards:
+            self._process_round_winner()
+
+    def _process_round_winner(self):
+        # find the player with the highest lead card
+        cur_card = self.this_rounds_cards[self.first_player]
+        for card in self.this_rounds_cards:
+            if card.suit == self.lead_suit and card > cur_card:
+                cur_card = card
+
+        winner = self.this_rounds_cards.index(cur_card)
+        self.tricks_won[winner] += 1
+
     def handle_shaker(self, player, victim):
         if not self.this_rounds_cards[player].is_shaker():
             raise Exception("Player %d hasn't played a shaker" % player)

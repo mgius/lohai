@@ -23,6 +23,12 @@ class CardTests(unittest.TestCase):
                 self.assertGreater(order[j], order[i])
 
 
+class DeckTests(unittest.TestCase):
+    def test_correct_card_count(self):
+        """ There should be 52 cards """
+        self.assertEqual(52, len(Deck.shuffle_new_deck().cards))
+
+
 class RoundTests(unittest.TestCase):
     def test_round_start(self):
         """ Ensure round start conditions valid
@@ -145,32 +151,45 @@ class TrickTests(unittest.TestCase):
     def setUp(self):
         # this set of hands generated using the Round.start_new_round and then
         # sorted
-        self.hands = [[Card(6, 0), Card(10, 0), Card(11, 0), Card(13, 0),
-                       Card(7, 1), Card(2, 2), Card(6, 2), Card(9, 2), 
-                       Card(6, 3)],
-                      [Card(15, 0), Card(6, 1), Card(11, 1), Card(14, 1),
-                       Card(15, 1), Card(7, 2), Card(3, 3), Card(7, 3),
-                       Card(13, 3)],
-                      [Card(5, 0), Card(8, 0), Card(9, 0), Card(2, 1), 
-                       Card(5, 1), Card(13, 1), Card(4, 2), Card(5, 2), 
-                       Card(5, 3)],
-                      [Card(12, 0), Card(9, 1), Card(3, 2), Card(8, 2),
-                       Card(10, 2), Card(11, 2), Card(14, 2), Card(4, 3),
-                       Card(9, 3)]]
-        self.deck = [Card(11, 3), Card(8, 1), Card(13, 2), Card(12, 2),
-                     Card(10, 3), Card(10, 1), Card(2, 3), Card(8, 3),
-                     Card(2, 0), Card(15, 3), Card(12, 3), Card(7, 0),
-                     Card(15, 2), Card(4, 1), Card(4, 0), Card(3, 0), 
-                     Card(3, 1), Card(14, 3), Card(14, 0)]
+        self.hands = [[Card(3, 0), Card(7, 0), Card(12, 0), Card(8, 1),
+                       Card(8, 2), Card(11, 2), Card(8, 3), Card(10, 3),
+                       Card(13, 0)],
+                      [Card(4, 0), Card(6, 0), Card(9, 0), Card(5, 1),
+                       Card(9, 1), Card(12, 2), Card(3, 3), Card(4, 3),
+                       Card(14, 3)],
+                      [Card(5, 0), Card(8, 0), Card(11, 0), Card(2, 1),
+                       Card(6, 2), Card(9, 2), Card(2, 3), Card(6, 3), 
+                       Card(7, 3)],
+                      [Card(4, 1), Card(7, 1), Card(11, 1), Card(2, 2),
+                       Card(5, 2), Card(7, 2), Card(9, 3), Card(13, 2),
+                       Card(13, 3)]]
+
+        self.deck = [Card(10, 2), Card(11, 3), Card(10, 0), Card(10, 1),
+                     Card(14, 2), Card(14, 1), Card(3, 2), Card(3, 1),
+                     Card(13, 1), Card(2, 0), Card(5, 3), Card(6, 1),
+                     Card(12, 3), Card(14, 0), Card(4, 2)]
+
 
         self.trump_card = Card(12, 1)
 
         self.round = Round(self.deck, self.hands, self.trump_card.pointvalue,
-                           self.trump_card.trump_suit)
+                           self.trump_card.suit)
 
     def test_highest_lead_suit_wins(self):
-        # player 1 plays a high club
-        pass
+        # player 1 plays a middle club
+        self.round.play_card(0, Card(7, 0))
+
+        # player 2 plays a lower club
+        self.round.play_card(1, Card(4, 0))
+
+        # player 3 plays another lower club
+        self.round.play_card(2, Card(5, 0))
+
+        # player 4 plays a high non-club
+        self.round.play_card(3, Card(11, 1))
+
+        # player 1 should have a point
+        self.assertEqual([1, 0, 0, 0], self.round.tricks_won)
 
 
 # the last player to play a giver or taker (black special) wins

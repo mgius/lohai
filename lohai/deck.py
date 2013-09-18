@@ -16,16 +16,16 @@ class Suit(object):
 
 
 class CardValue(object):
-    jack = 11
-    queen = 12
-    king = 13
-    taker = 14   # black
-    giver = 15   # black
-    mover = 14   # red
-    shaker = 15  # red
+    jack = 10
+    queen = 11
+    king = 12
+    taker = 13   # black
+    giver = 14   # black
+    mover = 13   # red
+    shaker = 14  # red
 
-    all_values = range(2, 16)
-    special_values = [14, 15]
+    all_values = range(2, 15)
+    special_values = [13, 14]
 
 
 @total_ordering
@@ -42,6 +42,8 @@ class Card(object):
         self._suit = suit
 
     def __eq__(self, other):
+        if other is None:
+            return False
         return self.value == other.value and self.suit == other.suit
 
     def __lt__(self, other):
