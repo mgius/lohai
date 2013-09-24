@@ -2,7 +2,48 @@ import unittest
 
 from lohai import exception
 from lohai.deck import Card, CardValue, Deck, Suit
+from lohai.events import Event
 from lohai.round import Round
+
+
+class TestEvent1(Event):
+    pass
+
+
+class TestEvent2(Event):
+    pass
+
+
+class EventTests(unittest.TestCase):
+    def setUp(self):
+        self.TestEvent1 = Event('TestEvent1')
+        self.TestEvent2 = Event('TestEvent2')
+
+    def test_event_notify(self):
+        self.counter1 = 0
+        self.counter2 = 0
+
+        def inc_counter1():
+            self.counter1 += 1
+
+        def inc_counter2():
+            self.counter2 += 1
+
+        self.TestEvent1.register(inc_counter1)
+        self.TestEvent2.register(inc_counter2)
+
+        self.assertEqual(0, self.counter1)
+        self.assertEqual(0, self.counter2)
+
+        self.TestEvent1.notify()
+
+        self.assertEqual(1, self.counter1)
+        self.assertEqual(0, self.counter2)
+
+        self.TestEvent2.notify()
+
+        self.assertEqual(1, self.counter1)
+        self.assertEqual(1, self.counter2)
 
 
 class CardTests(unittest.TestCase):
@@ -32,7 +73,7 @@ class DeckTests(unittest.TestCase):
 class RoundTests(unittest.TestCase):
     def test_round_start(self):
         """ Ensure round start conditions valid
-        
+
         at the start of the round each player has 9 cards and the round has a
         trump suit and a point value
         """
@@ -60,7 +101,7 @@ class CanPlayCardsTests(unittest.TestCase):
         # first player pulls a card out of his sleeve
         with self.assertRaises(exception.InvalidCard):
             r.play_card(0, Card(CardValue.taker, Suit.club))
-        
+
     def test_play_in_order(self):
         """ Players play clockwise one at a time """
         hands = [[Card(2, Suit.club), Card(2, Suit.diamond)],
@@ -158,17 +199,16 @@ class TrickTests(unittest.TestCase):
                        Card(9, 1), Card(12, 2), Card(3, 3), Card(4, 3),
                        Card(14, 3)],
                       [Card(5, 0), Card(8, 0), Card(11, 0), Card(2, 1),
-                       Card(6, 2), Card(9, 2), Card(2, 3), Card(6, 3), 
+                       Card(6, 2), Card(9, 2), Card(2, 3), Card(6, 3),
                        Card(7, 3)],
                       [Card(4, 1), Card(7, 1), Card(11, 1), Card(2, 2),
-                       Card(5, 2), Card(7, 2), Card(9, 3), Card(13, 2),
-                       Card(13, 3)]]
+                       Card(5, 2), Card(7, 2), Card(13, 2), Card(13, 3),
+                       Card(14, 2)]]
 
         self.deck = [Card(10, 2), Card(11, 3), Card(10, 0), Card(10, 1),
-                     Card(14, 2), Card(14, 1), Card(3, 2), Card(3, 1),
+                     Card(14, 1), Card(3, 2), Card(3, 1),
                      Card(13, 1), Card(2, 0), Card(5, 3), Card(6, 1),
-                     Card(12, 3), Card(14, 0), Card(4, 2)]
-
+                     Card(12, 3), Card(14, 0), Card(4, 2), Card(9, 3)]
 
         self.trump_card = Card(12, 1)
 
@@ -201,15 +241,33 @@ class TrickTests(unittest.TestCase):
 
         # third player follows with a club
         self.round.play_card(2, Card(5, 0))
-        
+
         # last player plays a taker
         self.round.play_card(3, Card(13, 2))
 
         # player 4 should have a point
         self.assertEqual([0, 0, 0, 1], self.round.tricks_won)
 
+    def test_last_giver_wins(self):
+        """ Last giver played wins """
+        # first player plays a taker
+        self.round.play_card(0, Card(13, 0))
 
-# the last player to play a giver or taker (black special) wins
+        # second player sets the suit as club
+        self.round.play_card(1, Card(4, 0))
+
+        # third player follows with a club
+        self.round.play_card(2, Card(5, 0))
+
+        # last player plays a taker
+        self.round.play_card(3, Card(14, 2))
+
+        # last player gives it to player 2
+        self.round.handle_giver(1)
+
+        # player 2 should have a point
+        self.assertEqual([0, 1, 0, 0], self.round.tricks_won)
+
 
 # the player with the highest trump suit wins, regardless of lead suit
 
@@ -264,7 +322,7 @@ class TrickTests(unittest.TestCase):
 # player who is either the middle trick taker or the one who did not tie the
 # other two players. Typically, this means each hand will have two players with
 # three tricks and the scoring player with four tricks.
-# 
+#
 # All rules are the same except 10 cards are dealt instead of 9 and the Mover
 # only works if you are either Lo or Hai. If you are tied for either Lo or Hai,
 # the Mover does not work.

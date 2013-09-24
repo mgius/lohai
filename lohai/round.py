@@ -19,6 +19,7 @@ class Round(object):
         self.this_rounds_cards = [None] * self.player_count
         self.tricks_won = [0] * self.player_count
         self.most_recent_giver_taker = None
+        self.need_giver_input = False
 
     @staticmethod
     def start_new_round():
@@ -125,7 +126,9 @@ class Round(object):
             if card.is_taker():
                 self.tricks_won[player] += 1
             elif card.is_giver():
-                raise Exception("Unhandled")
+                self.need_giver_input = True
+                # TODO: observer here
+                pass
             else:
                 raise Exception("Card %s is not a giver or taker" % card)
 
@@ -149,3 +152,9 @@ class Round(object):
         self.this_rounds_cards[player] = self.this_rounds_cards[victim]
         self.this_rounds_cards[victim] = None
         self._play_from_deck(victim)
+
+    def handle_giver(self, victim):
+        if not self.need_giver_input:
+            raise Exception("Giver input not expected")
+
+        self.tricks_won[victim] += 1
