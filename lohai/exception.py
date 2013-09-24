@@ -14,3 +14,7 @@ class InvalidCard(Exception):
 
 class NotYourTurn(Exception):
     pass
+
+
+class InvalidMove(Exception):
+    pass

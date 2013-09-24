@@ -210,14 +210,15 @@ class TrickTests(unittest.TestCase):
                      Card(13, 1), Card(2, 0), Card(5, 3), Card(6, 1),
                      Card(12, 3), Card(14, 0), Card(4, 2), Card(9, 3)]
 
-        self.trump_card = Card(12, 1)
+        self.trump_card = Card(12, 1)  # heart king
 
         self.round = Round(self.deck, self.hands, self.trump_card.pointvalue,
                            self.trump_card.suit)
 
     def test_highest_lead_suit_wins(self):
+        """ the player with the highest lead suit card wins """
         # player 1 plays a middle club
-        self.round.play_card(0, Card(7, 0))
+        self.round.play_card(0, Card(3, 0))
 
         # player 2 plays a lower club
         self.round.play_card(1, Card(4, 0))
@@ -226,10 +227,10 @@ class TrickTests(unittest.TestCase):
         self.round.play_card(2, Card(5, 0))
 
         # player 4 plays a high non-club
-        self.round.play_card(3, Card(11, 1))
+        self.round.play_card(3, Card(7, 2))
 
-        # player 1 should have a point
-        self.assertEqual([1, 0, 0, 0], self.round.tricks_won)
+        # player 3 should have a point
+        self.assertEqual([0, 0, 1, 0], self.round.tricks_won)
 
     def test_last_taker_wins(self):
         """ Last taker played wins """
@@ -262,16 +263,33 @@ class TrickTests(unittest.TestCase):
         # last player plays a taker
         self.round.play_card(3, Card(14, 2))
 
+        with self.assertRaises(exception.InvalidMove):
+            # last player cannot give the trick to himself
+            self.round.handle_giver(3)
+
         # last player gives it to player 2
         self.round.handle_giver(1)
 
         # player 2 should have a point
         self.assertEqual([0, 1, 0, 0], self.round.tricks_won)
 
+    def test_highest_trump_suit_wins(self):
+        """ Highest trump suit wins regardless of lead suit """
+        # player 1 leads a middle club
+        self.round.play_card(0, Card(7, 0))
 
-# the player with the highest trump suit wins, regardless of lead suit
+        # player 2 plays a lower club
+        self.round.play_card(1, Card(4, 0))
 
-# the player with the highest number in the lead suit wins
+        # player 3 plays another lower club
+        self.round.play_card(2, Card(5, 0))
+
+        # last player trumps
+        self.round.play_card(3, Card(4, 1))
+
+        # player 4 should have a point
+        self.assertEqual([0, 0, 0, 1], self.round.tricks_won)
+
 
 # the winner of the previous trick leads the next
 

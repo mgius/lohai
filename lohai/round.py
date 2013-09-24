@@ -134,13 +134,18 @@ class Round(object):
 
             return
 
-        # find the player with the highest lead card
-        cur_card = self.this_rounds_cards[self.first_player]
-        for card in self.this_rounds_cards:
-            if card.suit == self.lead_suit and card > cur_card:
-                cur_card = card
+        # find the player with the highest trump card or highest lead card
+        def _card_key(card):
+            value = card.value
+            if card.suit == self.trump_suit:
+                value += 200
+            elif card.suit == self.lead_suit:
+                value += 100
 
-        winner = self.this_rounds_cards.index(cur_card)
+            return value
+
+        win_card = sorted(self.this_rounds_cards, key=_card_key)[-1]
+        winner = self.this_rounds_cards.index(win_card)
         self.tricks_won[winner] += 1
 
     def handle_shaker(self, player, victim):
@@ -155,6 +160,11 @@ class Round(object):
 
     def handle_giver(self, victim):
         if not self.need_giver_input:
-            raise Exception("Giver input not expected")
+            raise lohai.exception.InvalidMove("Giver input not expected")
+
+        _card, player = self.most_recent_giver_taker
+
+        if player == victim:
+            raise lohai.exception.InvalidMove("Not allowed to give to self")
 
         self.tricks_won[victim] += 1
