@@ -187,8 +187,7 @@ class CanPlayCardsTests(unittest.TestCase):
         round.play_card(3, hands[3][0])
 
 
-class TrickTests(unittest.TestCase):
-    """ Tests around various trick win conditions """
+class LohaiTests(unittest.TestCase):
     def setUp(self):
         # this set of hands generated using the Round.start_new_round and then
         # sorted
@@ -205,16 +204,19 @@ class TrickTests(unittest.TestCase):
                        Card(5, 2), Card(7, 2), Card(13, 2), Card(13, 3),
                        Card(14, 2)]]
 
-        self.deck = [Card(10, 2), Card(11, 3), Card(10, 0), Card(10, 1),
-                     Card(14, 1), Card(3, 2), Card(3, 1),
-                     Card(13, 1), Card(2, 0), Card(5, 3), Card(6, 1),
-                     Card(12, 3), Card(14, 0), Card(4, 2), Card(9, 3)]
+        self.deck = Deck([Card(10, 2), Card(11, 3), Card(10, 0), Card(10, 1),
+                          Card(14, 1), Card(3, 2), Card(3, 1),
+                          Card(13, 1), Card(2, 0), Card(5, 3), Card(6, 1),
+                          Card(12, 3), Card(14, 0), Card(4, 2), Card(9, 3)])
 
         self.trump_card = Card(12, 1)  # heart king
 
         self.round = Round(self.deck, self.hands, self.trump_card.pointvalue,
                            self.trump_card.suit)
 
+
+class TrickTests(LohaiTests):
+    """ Tests around various trick win conditions """
     def test_highest_lead_suit_wins(self):
         """ the player with the highest lead suit card wins """
         # player 1 plays a middle club
@@ -233,7 +235,8 @@ class TrickTests(unittest.TestCase):
         self.assertEqual([0, 0, 1, 0], self.round.tricks_won)
 
     def test_last_taker_wins(self):
-        """ Last taker played wins """
+        """ Last taker played wins, and the player of the taker leads the next
+        trick """
         # first player plays a taker
         self.round.play_card(0, Card(13, 0))
 
@@ -249,8 +252,19 @@ class TrickTests(unittest.TestCase):
         # player 4 should have a point
         self.assertEqual([0, 0, 0, 1], self.round.tricks_won)
 
+        # player 1 is not allowed to go next
+        with self.assertRaises(exception.NotYourTurn):
+            self.round.play_card(0, Card(3, 0))
+
+        # player 4 gets to go first next trick
+        self.round.play_card(3, Card(4, 1))
+
+        # the winner of the previous trick leads the next
+
     def test_last_giver_wins(self):
-        """ Last giver played wins """
+        """ Last giver played wins, may give the trick to anyone other than
+        himself.  The recipient of the trick leads the next trick
+        """
         # first player plays a taker
         self.round.play_card(0, Card(13, 0))
 
@@ -273,6 +287,12 @@ class TrickTests(unittest.TestCase):
         # player 2 should have a point
         self.assertEqual([0, 1, 0, 0], self.round.tricks_won)
 
+        # last player doesn't get to go, player 2 does
+        with self.assertRaises(exception.NotYourTurn):
+            self.round.play_card(3, Card(4, 1))
+
+        self.round.play_card(1, Card(6, 0))
+
     def test_highest_trump_suit_wins(self):
         """ Highest trump suit wins regardless of lead suit """
         # player 1 leads a middle club
@@ -291,14 +311,97 @@ class TrickTests(unittest.TestCase):
         self.assertEqual([0, 0, 0, 1], self.round.tricks_won)
 
 
-# the winner of the previous trick leads the next
+class ShakerTests(unittest.TestCase):
+    """ Tests around shaker behavior """
+    def test_shaker_steal_card(self):
+        """ a player who plays a shaker can steal another players card, and the
+        victim draws a card """
+        hands = [[Card(3,1)],
+                 [Card(4,1)],
+                 [Card(CardValue.shaker, Suit.heart)],
+                 []]
 
-# the player who plays the giver may give the trick to any player other than
-# himself
+        deck = Deck([Card(5,1)])
 
-# the recipient of a giver trick leads the next trick
+        expected_field = [Card(3, 1), Card(5, 1), Card(4, 1), None]
 
-# the player who plays the taker receives the trick
+        trump_card = Card(12, 1)
+
+        round = Round(deck, hands, trump_card.pointvalue, trump_card.suit)
+
+        # player 1 plays a card
+        round.play_card(0, hands[0][0])
+        # so does player 2
+        round.play_card(1, hands[1][0])
+
+        # player 3 plays a shaker
+        round.play_card(2, hands[2][0])
+
+        # can't steal player 4's card 
+        with self.assertRaises(exception.InvalidMove):
+            round.handle_shaker(2, 3)
+
+        # player 2 doesn't get to steal anybody's anything
+        with self.assertRaises(exception.InvalidMove):
+            round.handle_shaker(1, 0)
+
+        round.handle_shaker(2, 1)
+
+        self.assertEqual(expected_field, round.this_rounds_cards)
+
+    def test_shaker_first(self):
+        """ a player who plyas a shaker first simply draws a new card from the
+        top of the deck """
+        hands = [[Card(CardValue.shaker, Suit.heart)],
+                 [],
+                 [],
+                 []]
+
+        deck = Deck([Card(5,1)])
+
+        expected_field = [Card(5, 1), None, None, None]
+
+        trump_card = Card(12, 1)
+
+        round = Round(deck, hands, trump_card.pointvalue, trump_card.suit)
+
+        # play a shaker first, draw a card
+        round.play_card(0, hands[0][0])
+
+        self.assertEqual(expected_field, round.this_rounds_cards)
+
+
+    def test_shaker_back(self):
+        hands = [[Card(3,1)],
+                 [Card(CardValue.shaker, Suit.heart)],
+                 [],
+                 []]
+
+        deck = Deck(
+            [Card(CardValue.shaker, Suit.diamond),
+             Card(4, 1)])
+
+        expected_field = [Card(3, 1), Card(4, 1), None, None]
+        trump_card = Card(12, 1)
+
+        round = Round(deck, hands, trump_card.pointvalue, trump_card.suit)
+
+        # play a card
+        round.play_card(0, hands[0][0])
+
+        # shake it
+        round.play_card(1, hands[1][0])
+        round.handle_shaker(1, 0)
+
+        # shake it back
+        round.handle_shaker(0, 1)
+
+        self.assertEqual(expected_field, round.this_rounds_cards)
+
+
+
+# a player who plays a shaker can steal another players card, and the victim
+# draws a card.  If the card is a shaker they can steal their call back
 
 # A player who plays a mover who has the high or low count (or is tied for
 # either) simply draws a new card from the deck
@@ -307,11 +410,6 @@ class TrickTests(unittest.TestCase):
 # player to immediately move a previously won trick from any player to any
 # other.  Afterwards they draw a new card from the top of the deck.
 
-# a player who plays a shaker can steal another players card, and the victim
-# draws a card
-
-# a player who plyas a shaker first simply draws a new card from the top of the
-# deck
 
 # At the end of the hand, the two players that have the least tricks (the Lo)
 # and most tricks (the Hai) score points. If two or more players tie for either
@@ -328,8 +426,6 @@ class TrickTests(unittest.TestCase):
 # whatever he would like. If he chooses to play a suited card, that is
 # considered the lead suit.
 
-# a player who plays a shaker can steal another players card, and the victim
-# draws a card.  If the card is a shaker they can steal their call back
 
 # if a player draws a giver or taker as a result of a shaker they trump
 # previously played givers and takers

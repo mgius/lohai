@@ -34,7 +34,8 @@ class Round(object):
 
         trump_card = deck.draw_card()
         if trump_card.is_special():
-            # if a special card is turned, there is no trump for the hand
+            # if a special card is turned, there is no trump for the
+            # hand
             trump_suit = lohai.deck.Suit.none
         else:
             trump_suit = trump_card.suit
@@ -89,7 +90,6 @@ class Round(object):
     def _play_card(self, player, card):
         self.hands[player].remove(card)
 
-        # play the card to the field
         self.this_rounds_cards[player] = card
 
         if card.is_mover():
@@ -101,12 +101,13 @@ class Round(object):
             self._play_from_deck(player)
 
         if card.is_shaker():
-            if not filter(None, self.this_rounds_cards):
+            if not len(filter(None, self.this_rounds_cards)) > 1:
                 # no other cards on the field, play from deck
                 self._play_from_deck(player)
             else:
                 # Signal we need to shake a card
-                raise NeedShakerInput
+                return
+
 
         if card.is_taker() or card.is_giver():
             self.most_recent_giver_taker = card, player
@@ -119,12 +120,19 @@ class Round(object):
         if None not in self.this_rounds_cards:
             self._process_round_winner()
 
+    def _start_new_trick(self, first_player):
+        self.this_rounds_cards = [None] * self.player_count
+        self.most_recent_giver_taker = None
+        self.need_giver_input = False
+        self.first_player = self.cur_player = first_player
+
     def _process_round_winner(self):
         # did any players play a taker or giver
         if self.most_recent_giver_taker is not None:
             card, player = self.most_recent_giver_taker
             if card.is_taker():
                 self.tricks_won[player] += 1
+                self._start_new_trick(player)
             elif card.is_giver():
                 self.need_giver_input = True
                 # TODO: observer here
@@ -147,12 +155,15 @@ class Round(object):
         win_card = sorted(self.this_rounds_cards, key=_card_key)[-1]
         winner = self.this_rounds_cards.index(win_card)
         self.tricks_won[winner] += 1
+        self._start_new_trick(winner)
 
     def handle_shaker(self, player, victim):
         if not self.this_rounds_cards[player].is_shaker():
-            raise Exception("Player %d hasn't played a shaker" % player)
+            raise lohai.exception.InvalidMove(
+                "Player %d hasn't played a shaker" % player)
         if self.this_rounds_cards[victim] is None:
-            raise Exception("Cannot steal from player %d, no card" % victim)
+            raise lohai.exception.InvalidMove(
+                "Cannot steal from player %d, no card" % victim)
 
         self.this_rounds_cards[player] = self.this_rounds_cards[victim]
         self.this_rounds_cards[victim] = None
@@ -168,3 +179,4 @@ class Round(object):
             raise lohai.exception.InvalidMove("Not allowed to give to self")
 
         self.tricks_won[victim] += 1
+        self._start_new_trick(victim)

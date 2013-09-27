@@ -150,4 +150,4 @@ class Deck(object):
         return Deck(cards)
 
     def draw_card(self):
-        return self.cards.pop()
+        return self.cards.pop(0)
