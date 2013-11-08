@@ -94,8 +94,8 @@ class Round(object):
 
         if card.is_mover():
             if self.player_can_mover(player):
-                # Signal we need to move tricks
-                raise NeedMoverInput
+                # TODO: Signal we need to move tricks
+                return
 
             # can't use the mover, play from the deck
             self._play_from_deck(player)
@@ -108,7 +108,6 @@ class Round(object):
                 # Signal we need to shake a card
                 return
 
-
         if card.is_taker() or card.is_giver():
             self.most_recent_giver_taker = card, player
 
@@ -118,7 +117,7 @@ class Round(object):
         self.cur_player = (self.cur_player + 1) % self.player_count
 
         if None not in self.this_rounds_cards:
-            self._process_round_winner()
+            self._process_trick_winner()
 
     def _start_new_trick(self, first_player):
         self.this_rounds_cards = [None] * self.player_count
@@ -126,7 +125,7 @@ class Round(object):
         self.need_giver_input = False
         self.first_player = self.cur_player = first_player
 
-    def _process_round_winner(self):
+    def _process_trick_winner(self):
         # did any players play a taker or giver
         if self.most_recent_giver_taker is not None:
             card, player = self.most_recent_giver_taker
@@ -136,7 +135,6 @@ class Round(object):
             elif card.is_giver():
                 self.need_giver_input = True
                 # TODO: observer here
-                pass
             else:
                 raise Exception("Card %s is not a giver or taker" % card)
 
@@ -180,3 +178,17 @@ class Round(object):
 
         self.tricks_won[victim] += 1
         self._start_new_trick(victim)
+
+    def handle_mover(self, player, source, dest):
+        if not self.this_rounds_cards[player].is_mover():
+            raise lohai.exception.InvalidMove(
+                "Player %d doesn't have a mover on the board" % player)
+
+        if self.tricks_won[source] < 1:
+            raise lohai.exception.InvalidMove(
+                "Cannot steal a trick from a player without tricks")
+
+        self.tricks_won[source] -= 1
+        self.tricks_won[dest] += 1
+
+        self._play_from_deck(player)

@@ -23,8 +23,8 @@ class Event(object):
             if callback is None:
                 # remove any callbacks which have been gc'd
                 self.callbacks.remove(cb_ref)
-
-            callback(*args, **kwargs)
+            else:
+                callback(*args, **kwargs)
 
     def clear(self):
         self.callbacks = []

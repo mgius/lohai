@@ -45,6 +45,17 @@ class EventTests(unittest.TestCase):
         self.assertEqual(1, self.counter1)
         self.assertEqual(1, self.counter2)
 
+        del inc_counter1, inc_counter2
+
+        self.TestEvent1.notify()
+        self.TestEvent2.notify()
+
+        self.assertEqual(1, self.counter1)
+        self.assertEqual(1, self.counter2)
+
+        self.assertEqual(0, len(self.TestEvent1.callbacks))
+        self.assertEqual(0, len(self.TestEvent2.callbacks))
+
 
 class CardTests(unittest.TestCase):
     def test_card_ordering(self):
@@ -316,12 +327,12 @@ class ShakerTests(unittest.TestCase):
     def test_shaker_steal_card(self):
         """ a player who plays a shaker can steal another players card, and the
         victim draws a card """
-        hands = [[Card(3,1)],
-                 [Card(4,1)],
+        hands = [[Card(3, 1)],
+                 [Card(4, 1)],
                  [Card(CardValue.shaker, Suit.heart)],
                  []]
 
-        deck = Deck([Card(5,1)])
+        deck = Deck([Card(5, 1)])
 
         expected_field = [Card(3, 1), Card(5, 1), Card(4, 1), None]
 
@@ -337,7 +348,7 @@ class ShakerTests(unittest.TestCase):
         # player 3 plays a shaker
         round.play_card(2, hands[2][0])
 
-        # can't steal player 4's card 
+        # can't steal player 4's card
         with self.assertRaises(exception.InvalidMove):
             round.handle_shaker(2, 3)
 
@@ -357,7 +368,7 @@ class ShakerTests(unittest.TestCase):
                  [],
                  []]
 
-        deck = Deck([Card(5,1)])
+        deck = Deck([Card(5, 1)])
 
         expected_field = [Card(5, 1), None, None, None]
 
@@ -370,9 +381,14 @@ class ShakerTests(unittest.TestCase):
 
         self.assertEqual(expected_field, round.this_rounds_cards)
 
-
     def test_shaker_back(self):
-        hands = [[Card(3,1)],
+        """ Shaker back and forth test
+
+        a player who plays a shaker can steal another players card, and the
+        victim draws a card.  If the card is a shaker they can steal their card
+        back
+        """
+        hands = [[Card(3, 1)],
                  [Card(CardValue.shaker, Suit.heart)],
                  [],
                  []]
@@ -399,16 +415,88 @@ class ShakerTests(unittest.TestCase):
         self.assertEqual(expected_field, round.this_rounds_cards)
 
 
+class MoverTests(LohaiTests):
+    def test_mover_with_high_count(self):
+        """ A player who plays a mover when he has the high count draws a new
+        card from the deck
+        """
+        self.round.cur_player = 3
+        self.round.tricks_won = [0, 0, 0, 1]
 
-# a player who plays a shaker can steal another players card, and the victim
-# draws a card.  If the card is a shaker they can steal their call back
+        expected_field = [None, None, None, Card(10, 2)]
 
-# A player who plays a mover who has the high or low count (or is tied for
-# either) simply draws a new card from the deck
+        # player 4 plays a mover
+        self.round.play_card(3, Card(13, 3))
 
-# A player who plays a mover who does not have the high or low count allows the
-# player to immediately move a previously won trick from any player to any
-# other.  Afterwards they draw a new card from the top of the deck.
+        # player 4 is winning, so they aren't allowed to move
+        with self.assertRaises(exception.InvalidMove):
+            self.round.handle_mover(3, 3, 1)
+
+        self.assertEqual(expected_field, self.round.this_rounds_cards)
+
+    def test_mover_with_low_count(self):
+        """ A player who plays a mover when he has the high count draws a new
+        card from the deck
+        """
+        self.round.cur_player = 3
+        self.round.tricks_won = [1, 1, 1, 0]
+
+        expected_field = [None, None, None, Card(10, 2)]
+
+        # player 4 plays a mover
+        self.round.play_card(3, Card(13, 3))
+
+        # player 4 is winning, so they aren't allowed to move
+        with self.assertRaises(exception.InvalidMove):
+            self.round.handle_mover(3, 3, 1)
+
+        self.assertEqual(expected_field, self.round.this_rounds_cards)
+
+    def test_mover_with_tied_count(self):
+        """ A player who plays a mover when he has the high count draws a new
+        card from the deck
+        """
+        self.round.cur_player = 3
+        self.round.tricks_won = [1, 1, 2, 2]
+
+        expected_field = [None, None, None, Card(10, 2)]
+
+        # player 4 plays a mover
+        self.round.play_card(3, Card(13, 3))
+
+        # player 4 is winning, so they aren't allowed to move
+        with self.assertRaises(exception.InvalidMove):
+            self.round.handle_mover(3, 3, 1)
+
+        self.assertEqual(expected_field, self.round.this_rounds_cards)
+
+    def test_mover_source_player_empty(self):
+        self.round.cur_player = 3
+        self.round.tricks_won = [0, 2, 2, 1]
+
+        # player 4 plays a mover
+        self.round.play_card(3, Card(13, 3))
+
+        # player 4 may not move a trick from player 1 (he doesn't have one!)
+        with self.assertRaises(exception.InvalidMove):
+            self.round.handle_mover(3, 0, 1)
+
+    def test_mover_moves_trick(self):
+        self.round.cur_player = 3
+        self.round.tricks_won = [0, 2, 2, 1]
+
+        # player 4 plays a mover
+        self.round.play_card(3, Card(13, 3))
+
+        # player 4 moves a trick from himself to player 1
+        self.round.handle_mover(3, 3, 0)
+
+        expected_field = [None, None, None, Card(10, 2)]
+        expected_tricks = [1, 2, 2, 0]
+
+        self.assertEqual(expected_tricks, self.round.tricks_won)
+        self.assertEqual(expected_field, self.round.this_rounds_cards)
+
 
 
 # At the end of the hand, the two players that have the least tricks (the Lo)
