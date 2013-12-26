@@ -1,15 +1,17 @@
 # most recent giver taker wins?
 import copy
-import lohai.deck
+
 import lohai.exception
+import lohai.game.deck
 
 
 class Round(object):
-    def __init__(self, deck, hands, pointvalue, trump_suit):
+    def __init__(self, deck, hands, trump_card):
         self.deck = deck
         self.hands = hands
-        self.pointvalue = pointvalue
-        self.trump_suit = trump_suit
+        self.trump_card = trump_card
+        self.pointvalue = trump_card.pointvalue
+        self.trump_suit = trump_card.suit
         self.lead_suit = None
 
         self.player_count = 4
@@ -23,24 +25,18 @@ class Round(object):
 
     @staticmethod
     def start_new_round():
-        deck = lohai.deck.Deck.shuffle_new_deck()
+        deck = lohai.game.deck.Deck.shuffle_new_deck()
 
         hands = [list(), list(), list(), list()]
 
         handsize = 9
-        for i in range(handsize):
+        for _i in range(handsize):
             for hand in hands:
                 hand.append(deck.draw_card())
 
         trump_card = deck.draw_card()
-        if trump_card.is_special():
-            # if a special card is turned, there is no trump for the
-            # hand
-            trump_suit = lohai.deck.Suit.none
-        else:
-            trump_suit = trump_card.suit
 
-        return Round(deck, hands, trump_card.pointvalue, trump_suit)
+        return Round(deck, hands, trump_card)
 
     def get_hand_for_player(self, player):
         return copy.deepcopy(self.hands[player])
@@ -66,7 +62,7 @@ class Round(object):
             raise lohai.exception.InvalidCard(
                 "Card %s is not in player %s's hand" % (card, player))
 
-        if card.is_special():
+        if card.is_special:
             return
 
         if self.lead_suit is not None and card.suit != self.lead_suit:
@@ -111,7 +107,7 @@ class Round(object):
         if card.is_taker() or card.is_giver():
             self.most_recent_giver_taker = card, player
 
-        if self.lead_suit is None and not card.is_special():
+        if self.lead_suit is None and not card.is_special:
             self.lead_suit = card.suit
 
         self.cur_player = (self.cur_player + 1) % self.player_count
