@@ -1,3 +1,4 @@
+-e .
 enum34
 pytest
 redis
