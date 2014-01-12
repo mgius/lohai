@@ -152,10 +152,10 @@ class TestTricks(object):
 
         with pytest.raises(exception.InvalidMove):
             # last player cannot give the trick to himself
-            round.handle_giver(3)
+            round.handle_giver(3, 3)
 
         # last player gives it to player 2
-        round.handle_giver(1)
+        round.handle_giver(3, 1)
 
         # player 2 should have a point
         assert [0, 1, 0, 0] == round.tricks_won
@@ -288,7 +288,7 @@ class TestMover(object):
         assert expected_field == round.this_rounds_cards
 
     def test_mover_source_player_empty(self, round):
-        round.cur_player = 3
+        round.current_hand.cur_player = 3
         round.tricks_won = [0, 2, 2, 1]
 
         # player 4 plays a mover
