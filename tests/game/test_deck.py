@@ -36,3 +36,23 @@ def test_can_pop_all_cards(clean_deck):
 
     with pytest.raises(IndexError):
         clean_deck.draw_card()
+
+
+def test_card_constructor():
+    with pytest.raises(Exception):
+        Card(CardValue.two, Suit.club.value)
+
+    with pytest.raises(Exception):
+        Card(CardValue.two.value, Suit.club)
+
+    with pytest.raises(Exception):
+        SpecialCard(CardValue.two)
+
+    with pytest.raises(Exception):
+        SpecialCard(CardValue.shaker, suit=Suit.club)
+
+
+def test_coverage_str_repr(special_card):
+    # clear coverage for __str__ and __repr__ debugging helpers
+    repr(special_card)
+    str(special_card)

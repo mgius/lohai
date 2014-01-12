@@ -98,19 +98,6 @@ class Card(object):
     def suit(self):
         return self._suit
 
-    # these are kind of lame...
-    def is_mover(self):
-        return self.value == CardValue.mover
-
-    def is_shaker(self):
-        return self.value == CardValue.shaker
-
-    def is_giver(self):
-        return self.value == CardValue.giver
-
-    def is_taker(self):
-        return self.value == CardValue.taker
-
     def __str__(self):
         suit_str = {Suit.spade: 'Spades',
                     Suit.heart: 'Hearts',
@@ -133,6 +120,9 @@ class SpecialCard(Card):
     def __init__(self, value, suit=Suit.none):
         if suit != Suit.none:
             raise Exception("Special cards have no suit")
+
+        if value not in CardValue.special_values():
+            raise Exception("%s is not a special value" % value)
 
         super(SpecialCard, self).__init__(value, suit)
 

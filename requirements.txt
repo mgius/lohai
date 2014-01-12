@@ -1,4 +1,5 @@
 -e .
 enum34
 pytest
+pytest-cov
 redis
