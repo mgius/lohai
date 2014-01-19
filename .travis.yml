@@ -4,4 +4,4 @@ python:
 
 install: pip install --requirement requirements.txt --upgrade
 
-script: py.test
+script: py.test --cov-report term-missing --cov lohai
