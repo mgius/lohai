@@ -4,7 +4,7 @@ import pytest
 
 from lohai import exception
 from lohai.game.deck import Card, CardValue, Deck, SpecialCard, Suit
-from lohai.game.round import Round
+from lohai.game.round import CardPlayer, Round
 
 
 class TestCanPlayCards(object):
@@ -94,6 +94,45 @@ class TestCanPlayCards(object):
         round.play_card(3, hands[3][0])
 
 
+class TestHand(object):
+    """ Some of the error conditions in Trick are almost impossible to test
+    under normal circumstances
+    """
+    def test_verify_giver_no_gt_played(self, hand):
+        hand.field_cards = [Card(CardValue.two, Suit.club),
+                            Card(CardValue.three, Suit.club),
+                            Card(CardValue.four, Suit.club),
+                            Card(CardValue.five, Suit.club)]
+
+        with pytest.raises(exception.InvalidMove) as exc:
+            hand.verify_giver_ok(0, 1)
+
+        assert 'No giver' in exc.exconly()
+
+    def test_verify_giver_not_giver(self, hand):
+        hand.field_cards = [SpecialCard(CardValue.taker),
+                            Card(CardValue.three, Suit.club),
+                            Card(CardValue.four, Suit.club),
+                            Card(CardValue.five, Suit.club)]
+        hand.most_recent_giver_taker = CardPlayer(SpecialCard(CardValue.taker),
+                                                  0)
+
+        with pytest.raises(exception.InvalidMove) as exc:
+            hand.verify_giver_ok(0, 1)
+
+        assert 'did not play a giver' in exc.exconly()
+
+    def test_process_trick_bad_giver_taker(self, hand):
+        """ In theory this can't happen """
+        hand.most_recent_giver_taker = CardPlayer(Card(CardValue.two,
+                                                       Suit.club),
+                                                       0)
+
+        with pytest.raises(Exception):
+            hand.process_trick_winner()
+
+
+
 class TestRound(object):
     def test_round_start(self):
         """ Ensure round start conditions valid
@@ -106,6 +145,11 @@ class TestRound(object):
         assert r.trump_suit in Suit
         for player in range(r.player_count):
             assert 9 == len(r.get_hand_for_player(player))
+
+    def test_remove_card_from_hand_no_card(self, round):
+        card = round.get_hand_for_player(1)[0]
+        with pytest.raises(exception.InvalidCard):
+            round.remove_card_from_hand(0, card)
 
 
 class TestTricks(object):
@@ -154,6 +198,10 @@ class TestTricks(object):
             # last player cannot give the trick to himself
             round.handle_giver(3, 3)
 
+        with pytest.raises(exception.InvalidMove):
+            # player 3 doesn't own the giver
+            round.handle_giver(2, 3)
+
         # last player gives it to player 2
         round.handle_giver(3, 1)
 
@@ -165,6 +213,15 @@ class TestTricks(object):
             round.play_card(3, Card(CardValue.four, Suit.heart))
 
         round.play_card(1, Card(CardValue.six, Suit.spade))
+
+    def test_last_giver_not_until_round_over(self, round):
+        round.cur_player = 3
+
+        round.play_card(3, SpecialCard(CardValue.giver))
+
+        with pytest.raises(exception.InvalidMove):
+            # not allowed to play the giver yet
+            round.handle_giver(3, 1)
 
     def test_highest_trump_suit_wins(self, round, trump_card):
         """ Highest trump suit wins regardless of lead suit """
@@ -187,7 +244,7 @@ class TestShaker(object):
     def hands(self):
         return [[Card(CardValue.three, Suit.heart)],
                 [Card(CardValue.four, Suit.heart)],
-                [SpecialCard(CardValue.shaker)],
+                [SpecialCard(CardValue.shaker), Card(CardValue.six, Suit.spade)],
                 [Card(CardValue.five, Suit.heart)]]
 
     @pytest.fixture()
@@ -211,6 +268,10 @@ class TestShaker(object):
 
         # player 3 plays a shaker
         round.play_card(2, hands[2][0])
+
+        # player 3 does not get to play more cards
+        with pytest.raises(exception.InvalidMove):
+            round.play_card(2, round.get_hand_for_player(2)[0])
 
         # can't steal player 4's card
         with pytest.raises(exception.InvalidMove):

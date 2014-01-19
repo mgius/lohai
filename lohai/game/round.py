@@ -8,7 +8,7 @@ import lohai.events
 import lohai.game.deck
 
 from lohai.events import Events, event_notify
-from lohai.game.deck import CardValue
+from lohai.game.deck import CardValue, SpecialCard
 
 
 CardPlayer = namedtuple('CardPlayer',  # pylint: disable=C0103
@@ -16,7 +16,7 @@ CardPlayer = namedtuple('CardPlayer',  # pylint: disable=C0103
 
 
 class Hand(object):
-    """ A single hand of a Lohai round
+    """ A single hand of a Lohai round (also known as a Trick)
 
     This object tracks:
         - The cards played on the field
@@ -83,7 +83,9 @@ class Hand(object):
         self.cur_player = (self.cur_player + 1) % self.round.player_count
 
     def hand_complete(self):
-        return None not in self.field_cards
+        return (None not in self.field_cards
+                and SpecialCard(CardValue.shaker) not in self.field_cards
+                and SpecialCard(CardValue.mover) not in self.field_cards)
 
     def play_card(self, player, card):
         if self.cur_player != player:
@@ -91,7 +93,7 @@ class Hand(object):
                                               % player)
 
         if self.field_cards[self.cur_player] is not None:
-            raise lohai.exception.NotYourTurn("You have already played a card")
+            raise lohai.exception.InvalidMove("You have already played a card")
 
         self._is_valid_play(player, card)
 
@@ -124,6 +126,9 @@ class Hand(object):
     def verify_giver_ok(self, player, victim):
         if not self.hand_complete():
             raise lohai.exception.InvalidMove("Round is not yet over")
+
+        if self.most_recent_giver_taker is None:
+            raise lohai.exception.InvalidMove("No giver has been played")
 
         if self.most_recent_giver_taker.player != player:
             raise lohai.exception.InvalidMove(
@@ -196,13 +201,10 @@ class Round(object):
     def this_rounds_cards(self):
         return self.current_hand.field_cards
 
-    def _get_cur_player(self):
-        return self.current_hand.cur_player
-
     def _set_cur_player(self, player):
         self.current_hand.cur_player = player
 
-    cur_player = property(_get_cur_player, _set_cur_player)
+    cur_player = property(lambda self: None, _set_cur_player)
 
     # end transition API
 
@@ -238,9 +240,6 @@ class Round(object):
 
     def get_hand_for_player(self, player):
         return copy.deepcopy(self.hands[player])
-
-    def tricks_for_player(self, player):
-        return self.tricks_won[player]
 
     # end Hand API
 

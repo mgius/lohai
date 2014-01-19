@@ -1,7 +1,7 @@
 import pytest
 
 from lohai.game.deck import Card, CardValue, Deck, Suit, SpecialCard
-from lohai.game.round import Round
+from lohai.game.round import Hand, Round
 
 
 @pytest.fixture
@@ -16,6 +16,16 @@ def clean_deck():
                         CardValue.shaker])
 def special_card(request):
     return SpecialCard(request.param)
+
+
+@pytest.fixture()
+def first_player():
+    return 0
+
+
+@pytest.fixture()
+def hand(round, first_player):  # pylint: disable=W0621
+    return Hand(round, first_player)
 
 
 # the default hands, trump_card and deck were generated via start_new_round,
