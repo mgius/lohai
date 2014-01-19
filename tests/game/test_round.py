@@ -132,7 +132,6 @@ class TestHand(object):
             hand.process_trick_winner()
 
 
-
 class TestRound(object):
     def test_round_start(self):
         """ Ensure round start conditions valid
@@ -244,7 +243,8 @@ class TestShaker(object):
     def hands(self):
         return [[Card(CardValue.three, Suit.heart)],
                 [Card(CardValue.four, Suit.heart)],
-                [SpecialCard(CardValue.shaker), Card(CardValue.six, Suit.spade)],
+                [SpecialCard(CardValue.shaker),
+                 Card(CardValue.six, Suit.spade)],
                 [Card(CardValue.five, Suit.heart)]]
 
     @pytest.fixture()
